@@ -1,0 +1,21 @@
+<resources>
+    <dimen name="activity_horizontal_margin">16dp</dimen>
+    <dimen name="activity_margin_end">10sp</dimen>
+    <dimen name="activity_margin">16dp</dimen>
+    <dimen name="activity_horizontal_padding">16dp</dimen>
+    <dimen name="activity_horizontal_padding_mini">3dp</dimen>
+    <dimen name="activity_fab_border">0dp</dimen>
+    <dimen name="activity_fab_elevation">6dp</dimen>
+    <dimen name="activity_fab_pressed_translationZ">12dp</dimen>
+
+    <dimen name="add_stock_margin">4dp</dimen>
+    <dimen name="add_stock_margin_top">16dp</dimen>
+
+    <dimen name="details_padding">20dp</dimen>
+
+    <dimen name="widget_default_height">70dp</dimen>
+    <dimen name="widget_default_width">220dp</dimen>
+    <dimen name="widget_title_text_size">18sp</dimen>
+    <dimen name="widget_padding">6dp</dimen>
+    <dimen name="widget_padding_list">10dp</dimen>
+</resources>

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<merge
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/colorPrimaryLight"
+    tools:context="com.pierluigipapeschi.stockhawk.ui.MainActivity">
+
+    <include layout="@layout/item_list"/>
+
+    <android.support.design.widget.FloatingActionButton
+        android:id="@+id/fab"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="@dimen/activity_margin"
+        android:onClick="button"
+        android:contentDescription="@string/fab_description"
+        android:src="@drawable/fab_plus"
+        app:backgroundTint="@color/material_blue_500"
+        app:borderWidth="@dimen/activity_fab_border"
+        app:elevation="@dimen/activity_fab_elevation"
+        app:fabSize="normal"
+        app:pressedTranslationZ="@dimen/activity_fab_pressed_translationZ" />
+
+    <TextView
+        android:id="@+id/error"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:gravity="center"
+        android:padding="@dimen/activity_horizontal_padding"
+        android:textColor="@color/colorPrimaryDark"
+        android:visibility="gone"
+        android:textAppearance="@android:style/TextAppearance.Medium"
+        tools:text="Error message" />
+</merge>
