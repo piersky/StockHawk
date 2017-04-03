@@ -13,6 +13,7 @@ import java.util.Set;
 public final class PrefUtils {
 
     private PrefUtils() {
+        throw new AssertionError("No PrefUtils instances.");
     }
 
     public static Set<String> getStocks(Context context) {

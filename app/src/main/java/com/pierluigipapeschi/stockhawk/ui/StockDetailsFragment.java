@@ -4,6 +4,9 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.LoaderManager;
+import android.support.v4.content.CursorLoader;
+import android.support.v4.content.Loader;
 import android.support.v4.content.res.ResourcesCompat;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -40,10 +43,14 @@ import timber.log.Timber;
  * Created by pier on 28/03/17.
  */
 
-public class StockDetailsFragment extends Fragment {
+public class StockDetailsFragment extends Fragment implements LoaderManager.LoaderCallbacks<Cursor> {
 
     private Cursor mCursor;
     private String mSymbol;
+
+    private static final int STOCK_LOADER = 1;
+    //FragmentDetailsAdapter mAdapter;
+    private boolean viewsCreated;
 
     private final DecimalFormat dollarFormatWithPlus;
     private final DecimalFormat dollarFormat;
@@ -52,6 +59,8 @@ public class StockDetailsFragment extends Fragment {
     TextView mTVSymbol;
     @BindView(R.id.tv_stock_current_price_frag)
     TextView mTVPrice;
+    @BindView(R.id.linechart_frag)
+    LineChart mStockChart;
 
     public StockDetailsFragment() {
         dollarFormat = (DecimalFormat) NumberFormat.getCurrencyInstance(Locale.US);
@@ -64,14 +73,9 @@ public class StockDetailsFragment extends Fragment {
 
         if (getArguments().containsKey(getString(R.string.SYMBOL_EXTRA))) {
             mSymbol = getArguments().getString(getString(R.string.SYMBOL_EXTRA));
-            Timber.d(mSymbol);
+            Timber.d("onCreate(): " + mSymbol);
 
-            Uri stockUri = Contract.Quote.makeUriForStock(mSymbol);
-            mCursor = getActivity().getContentResolver().query(stockUri,
-                    null,
-                    null,
-                    null,
-                    null);
+            getActivity().getSupportLoaderManager().initLoader(STOCK_LOADER, null, this);
         }
     }
 
@@ -82,73 +86,106 @@ public class StockDetailsFragment extends Fragment {
 
         ButterKnife.bind(this, rootView);
 
-        if (mSymbol != null) {
-            if (mCursor.moveToFirst()) {
-                mTVSymbol = (TextView) rootView.findViewById(R.id.tv_symbol_frag);
+        viewsCreated = true;
 
-                mTVSymbol.setText(mSymbol);
-                Timber.d(mSymbol);
+        Timber.d("onCreateView()");
 
-                if (mCursor.getFloat(mCursor.getColumnIndex(Contract.Quote.COLUMN_ABSOLUTE_CHANGE)) > 0) {
-                    mTVPrice.setText(dollarFormatWithPlus.format(mCursor.getFloat(mCursor.getColumnIndex(Contract.Quote.COLUMN_PRICE))));
-                    mTVPrice.setTextColor(ResourcesCompat.getColor(getResources(), R.color.material_green_700, null));
-                } else {
-                    mTVPrice.setText(dollarFormat.format(mCursor.getFloat(mCursor.getColumnIndex(Contract.Quote.COLUMN_PRICE))));
-                    mTVPrice.setTextColor(ResourcesCompat.getColor(getResources(), R.color.material_red_700, null));
-                }
-
-                LineData lineData = new LineData(getHistoricalData(mCursor.getString(mCursor.getColumnIndex(Contract.Quote.COLUMN_HISTORY))));
-                LineChart stockChart = (LineChart) rootView.findViewById(R.id.linechart_frag);
-
-                XAxis xAxis = stockChart.getXAxis();
-                xAxis.setValueFormatter(new IAxisValueFormatter() {
-                    @Override
-                    public String getFormattedValue(float value, AxisBase axis) {
-                        Calendar calendar = Calendar.getInstance();
-                        calendar.setTimeInMillis((long) value);
-                        return String.valueOf(calendar.get(Calendar.YEAR) + "-" + calendar.get(Calendar.WEEK_OF_YEAR));
-                    }
-                });
-
-                stockChart.getAxisRight().setDrawLabels(false);
-
-                Description description = new Description();
-                description.setText(getString(R.string.details_chart_label));
-                stockChart.setDescription(description);
-                stockChart.setBackgroundColor(ResourcesCompat.getColor(getResources(), R.color.colorPrimaryLight, null));
-
-                stockChart.setData(lineData);
-                stockChart.animateX(2000);
-                stockChart.invalidate();
-
-                mCursor.close();
+        if (mCursor != null) setViews();
+        /*if (mSymbol != null) {
+            if (mCursor != null) {
+                setViews();
             }
-        }
-
+        }*/
         return rootView;
     }
 
-        private List<ILineDataSet> getHistoricalData(String history) {
+    private void setViews() {
+        Timber.d("setViews()" + viewsCreated);
 
-            List<Entry> entryList = new ArrayList<>();
-            List<String> sList = new ArrayList<>(Arrays.asList(history.split("\n")));
-            List<String> xAxisValues = new ArrayList<>();
+        if (viewsCreated) {
+            mTVSymbol.setText(mSymbol);
 
-            for (String s : sList) {
-                String[] splitted = s.split(",");
-                entryList.add(new Entry(Float.parseFloat(splitted[0]), Float.parseFloat(splitted[1])));
-                xAxisValues.add(splitted[0]);
+            if (mCursor.getFloat(mCursor.getColumnIndex(Contract.Quote.COLUMN_ABSOLUTE_CHANGE)) > 0) {
+                mTVPrice.setText(dollarFormatWithPlus.format(mCursor.getFloat(mCursor.getColumnIndex(Contract.Quote.COLUMN_PRICE))));
+                mTVPrice.setTextColor(ResourcesCompat.getColor(getResources(), R.color.material_green_700, null));
+            } else {
+                mTVPrice.setText(dollarFormat.format(mCursor.getFloat(mCursor.getColumnIndex(Contract.Quote.COLUMN_PRICE))));
+                mTVPrice.setTextColor(ResourcesCompat.getColor(getResources(), R.color.material_red_700, null));
             }
-            Collections.reverse(entryList);
 
-            LineDataSet setStock = new LineDataSet(entryList, mSymbol);
-            setStock.setAxisDependency(YAxis.AxisDependency.LEFT);
-            setStock.setColor(ResourcesCompat.getColor(getResources(), R.color.colorPrimaryDark, null));
-            setStock.setCircleColor(ResourcesCompat.getColor(getResources(), R.color.colorPrimaryDark, null));
+            LineData lineData = new LineData(getHistoricalData(mCursor.getString(mCursor.getColumnIndex(Contract.Quote.COLUMN_HISTORY))));
 
-            List<ILineDataSet> dataSets = new ArrayList<>();
-            dataSets.add(setStock);
+            XAxis xAxis = mStockChart.getXAxis();
+            xAxis.setValueFormatter(new IAxisValueFormatter() {
+                @Override
+                public String getFormattedValue(float value, AxisBase axis) {
+                    Calendar calendar = Calendar.getInstance();
+                    calendar.setTimeInMillis((long) value);
+                    return String.valueOf(calendar.get(Calendar.YEAR) + "-" + calendar.get(Calendar.WEEK_OF_YEAR));
+                }
+            });
 
-            return dataSets;
+            mStockChart.getAxisRight().setDrawLabels(false);
+
+            Description description = new Description();
+            description.setText(getString(R.string.details_chart_label));
+            mStockChart.setDescription(description);
+            mStockChart.setBackgroundColor(ResourcesCompat.getColor(getResources(), R.color.colorPrimaryLight, null));
+
+            mStockChart.setData(lineData);
+            mStockChart.animateX(2000);
+            mStockChart.invalidate();
+
+            viewsCreated = false;
         }
+    }
+
+    private List<ILineDataSet> getHistoricalData(String history) {
+
+        List<Entry> entryList = new ArrayList<>();
+        List<String> sList = new ArrayList<>(Arrays.asList(history.split("\n")));
+        List<String> xAxisValues = new ArrayList<>();
+
+        for (String s : sList) {
+            String[] splitted = s.split(",");
+            entryList.add(new Entry(Float.parseFloat(splitted[0]), Float.parseFloat(splitted[1])));
+            xAxisValues.add(splitted[0]);
+        }
+        Collections.reverse(entryList);
+
+        LineDataSet setStock = new LineDataSet(entryList, mSymbol);
+        setStock.setAxisDependency(YAxis.AxisDependency.LEFT);
+        setStock.setColor(ResourcesCompat.getColor(getResources(), R.color.colorPrimaryDark, null));
+        setStock.setCircleColor(ResourcesCompat.getColor(getResources(), R.color.colorPrimaryDark, null));
+
+        List<ILineDataSet> dataSets = new ArrayList<>();
+        dataSets.add(setStock);
+
+        return dataSets;
+    }
+
+    @Override
+    public Loader<Cursor> onCreateLoader(int id, Bundle args) {
+        Timber.d("onCreateLoader()");
+
+        return new CursorLoader(getContext(), Contract.Quote.makeUriForStock(mSymbol),
+                Contract.Quote.QUOTE_COLUMNS.toArray(new String[]{}),
+                null,
+                null,
+                null);
+    }
+
+    @Override
+    public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
+        Timber.d("onLoadFinished()");
+
+        mCursor = data;
+        mCursor.moveToFirst();
+        setViews();
+    }
+
+    @Override
+    public void onLoaderReset(Loader<Cursor> loader) {
+        Timber.d("onLoaderReset()");
+    }
 }
